@@ -1,0 +1,211 @@
+#!/bin/bash
+
+contains() 
+{
+	string="$1"
+	substring="$2"
+	if [[ ${string} -eq $substring ]];
+	then
+		return 0
+	else 
+		return 1
+	fi
+
+}
+
+colfmt="%-20s %-20s %-20s %-10s\n"; 
+if [ ! -f schedule ]
+then 
+	printf "$colfmt" "NAME" "DATE DUE" "DATE CREATED" "DESCRIPTION" >> schedule
+	printf "$colfmt" "----" "--------" "------------" "-----------" >> schedule	 
+fi
+
+while [[ "$command" != "quit"  && "$command" != "q" ]]
+do
+
+	echo -n "Would you like to view [v], add [a], edit [e], delete [d] or quit [q]? "
+	read command
+	if [[ "$command" == "view" || "$command" == "v" ]]
+	then
+		if ((  "$(wc -l schedule | cut -d " " -f1)" < 3 ))
+		then
+			cat schedule
+		else
+			echo -n "Sort alphabetically [a], date due [d], date created [c], or normal [n] view? "
+			read sort
+			if [[ "$sort" == "a" ]]
+			then
+				head -n+2 schedule
+				tail -n+3 schedule | sort
+			elif [[ "$sort" == "d" ]]
+			then
+				head -n+2 schedule
+				tail -n+3 schedule | sort -k2
+			elif [[ "$sort" == "c" ]]
+			then
+				head -n+2 schedule
+				tail -n+3 schedule | sort -k3
+		
+			elif [[ "$sort" == "n" ]]
+			then
+				cat schedule
+			else
+				echo "Not a valid command."
+			fi
+		fi	
+	elif [[ "$command" == "add" || "$command" == "a" ]]
+	then		
+		titleOK=0
+		while [ $titleOK = 0 ]
+		do
+			echo -n "Enter a new title (20 characters max): "
+			read newTitle
+			if [ ${#newTitle} -gt 21 ]
+			then
+				echo "Title is too long, must be less than or equal to 20"
+			elif [ ${#newTitle} -lt 1 ]
+			then
+				echo "Title cannot be 0 characters long"
+			else
+				titleOK=1
+			fi
+		done
+
+		dateOK=0
+		while [ $dateOK = 0 ]
+		do 
+			echo -n "Enter a new date due (MM/DD/YYYY): "
+			read newDate
+			date "+%D" -d "$newDate" > /dev/null 2>&1; 
+			mynumber=$?
+			if [ $mynumber -eq 0 ]
+			then 
+				dateOK=1
+			else
+				echo "Not a valid date"
+			fi
+		done
+			
+		timeOK=0
+		while [ $timeOK = 0 ]
+		do 
+			echo -n "Enter a new time due (HH:MM:SS): "
+			read newTime
+			date "+%T" -d "$newTime" > /dev/null 2>&1
+			mynumber=$?
+			if [ $mynumber -eq 0 ]
+			then 
+				timeOK=1
+			else
+				echo "Not a valid time"
+			fi
+		done
+			
+		descriptionOK=0
+		while [ $descriptionOK = 0 ]
+		do
+			echo -n "Enter a new description (70 characters max): "
+			read newDesc
+			if [ ${#newDesc} -gt 70 ]
+			then
+				echo "Description is too long, must be less than or equal to 70"
+			elif [ ${#newDesc} -lt 1 ]
+			then
+				echo "Title cannot be 0 characters long"
+			else
+				descriptionOK=1
+			fi
+		done
+		printf "$colfmt" "$newTitle" "$newDate $newTime" "`date '+%D %T'`" "$newDesc" >> schedule
+	elif [[ "$command" == "edit" || "$command" == "e" ]]
+	then
+		
+		echo -n "Enter a schedule name to edit: "
+		read editLine
+		ifFound=$(tail -n+3 schedule | awk -v awkeditLine="$editLine" '$1 == awkeditLine { print $1 }')
+		if [[ $ifFound != "" ]]
+		then
+			head -n+2 schedule
+			tail -n+3 schedule | awk -v awkeditLine="$ifFound" '$1 == awkeditLine { print $0 }'
+			echo ""
+
+			titleOK=0
+			while [ $titleOK = 0 ]
+			do
+				echo -n "Enter a new title (20 characters max): "
+				read newTitle
+				if [ ${#newTitle} -gt 21 ]
+				then
+					echo "Title is too long, must be less than or equal to 20"
+				elif [ ${#newTitle} -lt 1 ]
+				then
+					echo "Title cannot be 0 characters long"
+				else
+					titleOK=1
+				fi
+			done
+
+			dateOK=0
+			while [ $dateOK = 0 ]
+			do 
+				echo -n "Enter a new date due (MM/DD/YYYY): "
+				read newDate
+				date "+%D" -d "$newDate" > /dev/null 2>&1; 
+				mynumber=$?
+				if [ $mynumber -eq 0 ]
+				then 
+					dateOK=1
+				else
+					echo "Not a valid date"
+				fi
+			done
+			
+			timeOK=0
+			while [ $timeOK = 0 ]
+			do 
+				echo -n "Enter a new time due (HH:MM:SS): "
+				read newTime
+				date "+%T" -d "$newTime" > /dev/null 2>&1
+				mynumber=$?
+				if [ $mynumber -eq 0 ]
+				then 
+					timeOK=1
+				else
+					echo "Not a valid time"
+				fi
+			done
+			
+			descriptionOK=0
+			while [ $descriptionOK = 0 ]
+			do
+				echo -n "Enter a new description (70 characters max): "
+				read newDesc
+				if [ ${#newDesc} -gt 70 ]
+				then
+					echo "Description is too long, must be less than or equal to 70"
+				elif [ ${#newDesc} -lt 1 ]
+				then
+					echo "Title cannot be 0 characters long"
+				else
+					descriptionOK=1
+				fi
+			done
+			sed -i "/^${ifFound}/d" schedule
+			printf "$colfmt" "$newTitle" "$newDate $newTime" "`date '+%D %T'`" "$newDesc" >> schedule
+
+
+		else 
+			echo "Schedule not found"
+		fi
+	elif [[ "$command" == "delete" || "$command" == "d" ]]
+	then
+		echo -n "Enter a schedule name to delete: "
+		read deleteLine
+		sed -i "/^${deleteLine}/d" schedule
+	elif [[ "$command" == "quit" || "$command" == "q" ]]
+	then
+		continue;
+	else
+		echo "Not a valid command"
+	fi
+done
